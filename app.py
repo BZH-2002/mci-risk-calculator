@@ -4,9 +4,23 @@ import joblib
 import numpy as np
 import shap
 import matplotlib.pyplot as plt
+from pathlib import Path
+from matplotlib import font_manager
 # 设置中文字体
-plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
-plt.rcParams["axes.unicode_minus"] = False
+# 设置中文字体，同时兼容本地 Windows 和 Streamlit Cloud
+BASE_DIR = Path(__file__).resolve().parent
+FONT_PATH = BASE_DIR / "fonts" / "SourceHanSansSC-Regular.otf"
+
+if FONT_PATH.exists():
+    font_manager.fontManager.addfont(str(FONT_PATH))
+    chinese_font = font_manager.FontProperties(fname=str(FONT_PATH))
+    font_name = chinese_font.get_name()
+
+    plt.rcParams["font.family"] = font_name
+    plt.rcParams["font.sans-serif"] = [font_name]
+    plt.rcParams["axes.unicode_minus"] = False
+else:
+    chinese_font = None
 @st.cache_resource
 def load_model():
     return joblib.load("Final_Locked_Model.joblib")
@@ -383,6 +397,9 @@ if st.button("开始预测", type="primary", use_container_width=True):
         plt.close("all")
 
         # 绘制SHAP力图
+        # 绘制 SHAP 力图
+        plt.close("all")
+
         shap.force_plot(
             base_value,
             source_shap,
@@ -394,6 +411,20 @@ if st.button("开始预测", type="primary", use_container_width=True):
         )
 
         fig = plt.gcf()
+
+        # 强制给 SHAP 图中的所有文字应用中文字体
+        if chinese_font is not None:
+            for ax in fig.axes:
+                for text in ax.texts:
+                    text.set_fontproperties(chinese_font)
+
+                for label in ax.get_xticklabels():
+                    label.set_fontproperties(chinese_font)
+
+                for label in ax.get_yticklabels():
+                    label.set_fontproperties(chinese_font)
+
+        fig.tight_layout()
 
         st.pyplot(
             fig,
